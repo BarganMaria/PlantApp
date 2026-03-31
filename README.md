@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # plant_identification_app
 
 A new Flutter project.
@@ -14,3 +15,7 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+=======
+# PlantApp
+A plant identification app
+>>>>>>> 568963c6cb0139fbfed965b8b1fec13b75580766
