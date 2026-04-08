@@ -1,58 +1,108 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'scan_history.dart';
-import 'reminders.dart';
-import 'favorites.dart';
-import 'quiz.dart';
-import '../widgets/weather_widget.dart';
 
-class HomeScreen extends StatelessWidget {
+import '../data/plant_info.dart';
+import '../data/plant_store.dart';
+import '../widgets/plant_picker_sheet.dart';
+import '../widgets/weather_widget.dart';
+import 'favorites.dart';
+import 'reminders.dart';
+import 'scan_history.dart';
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final PlantStore _store = PlantStore.instance;
+
+  final List<Map<String, String>> _tasks = [
+    {'plant': 'narcissus_pseudonarcissus', 'task': 'Udare usoara', 'time': '09:00'},
+    {'plant': 'tulipa_gesneriana', 'task': 'Verifica solul', 'time': '18:00'},
+  ];
+
+  void _open(BuildContext context, Widget page) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+  }
+
+  void _showAddFavorite() {
+    showPlantPickerSheet(
+      context: context,
+      selected: _store.favorites.toSet(),
+      title: 'Adauga in favorite',
+      onSelected: (label) => _store.addFavorite(label),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final weatherKey = dotenv.env['OPENWEATHER_API_KEY'] ?? '';
     final hasWeatherKey = weatherKey.isNotEmpty;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Identificare plante'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: [
-          if (hasWeatherKey)
-            WeatherWidget(
-              city: 'Chisinau',
-              apiKey: weatherKey,
-            )
-          else
-            const _MissingKeyCard(
-              title: 'Vreme indisponibila',
-              message: 'Adauga OPENWEATHER_API_KEY in .env pentru a activa vremea.',
-            ),
-          const SizedBox(height: 20),
-          _SectionHeader(title: 'Scanari recente', action: 'Vezi toate', onTap: () => _open(context, const ScanHistoryPage())),
-          const SizedBox(height: 12),
-          _HorizontalCards(items: const ['Stejar', 'Lavanda', 'Iris', 'Ienupar']),
-          const SizedBox(height: 22),
-          _SectionHeader(title: 'Sarcini de ingrijire azi', action: '+Adauga memento', onTap: () => _open(context, const RemindersPage())),
-          const SizedBox(height: 12),
-          _ReminderList(),
-          const SizedBox(height: 22),
-          _SectionHeader(title: 'Plantele tale preferate', action: 'Vezi toate favoritele', onTap: () => _open(context, const FavoritesPage())),
-          const SizedBox(height: 12),
-          _FavoritesGrid(),
-          const SizedBox(height: 22),
-          _QuizCard(onTap: () => _open(context, const QuizPage())),
-        ],
-      ),
+    return AnimatedBuilder(
+      animation: _store,
+      builder: (context, _) {
+        final favorites = _store.favorites;
+        final recentScans = _store.recentScans;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Identificare plante'),
+          ),
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            children: [
+              if (hasWeatherKey)
+                WeatherWidget(
+                  city: 'Chisinau',
+                  apiKey: weatherKey,
+                )
+              else
+                const _MissingKeyCard(
+                  title: 'Vreme indisponibila',
+                  message: 'Adauga OPENWEATHER_API_KEY in .env pentru a activa vremea.',
+                ),
+              const SizedBox(height: 20),
+              _SectionHeader(
+                title: 'Scanari recente',
+                action: 'Vezi toate',
+                onTap: () => _open(context, const ScanHistoryPage()),
+              ),
+              const SizedBox(height: 12),
+              _RecentScans(
+                scans: recentScans,
+                favorites: favorites.toSet(),
+                onFavorite: _store.addFavorite,
+              ),
+              const SizedBox(height: 22),
+              _SectionHeader(
+                title: 'Sarcini de ingrijire azi',
+                action: '+Adauga memento',
+                onTap: () => _open(context, const RemindersPage()),
+              ),
+              const SizedBox(height: 12),
+              _ReminderList(items: _tasks),
+              const SizedBox(height: 22),
+              _SectionHeader(title: 'Plantele tale preferate', action: 'Adauga favorita', onTap: _showAddFavorite),
+              const SizedBox(height: 12),
+              if (favorites.isEmpty)
+                const Text('Inca nu ai adaugat favorite.', style: TextStyle(color: Color(0xFF6C6C6C)))
+              else
+                _FavoritesGrid(favorites: favorites),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => _open(context, const FavoritesPage()),
+                child: const Text('Deschide lista completa'),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
-}
-
-void _open(BuildContext context, Widget page) {
-  Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -70,8 +120,13 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
-        const Spacer(),
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleLarge,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
         TextButton(onPressed: onTap, child: Text(action)),
       ],
     );
@@ -106,21 +161,58 @@ class _MissingKeyCard extends StatelessWidget {
   }
 }
 
-class _HorizontalCards extends StatelessWidget {
-  final List<String> items;
-  const _HorizontalCards({required this.items});
+class _RecentScans extends StatelessWidget {
+  final List<ScanEntry> scans;
+  final Set<String> favorites;
+  final Future<void> Function(String label)? onFavorite;
+  const _RecentScans({required this.scans, required this.favorites, this.onFavorite});
 
   @override
   Widget build(BuildContext context) {
+    if (scans.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x11000000),
+              blurRadius: 14,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.camera_alt_outlined, color: Color(0xFFC57AE6)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Nu exista scanari recente. Incearca un scan nou pentru a popula lista.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return SizedBox(
-      height: 160,
+      height: 230,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: items.length,
+        itemCount: scans.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
+          final scan = scans[index];
+          final info = getPlantInfo(scan.label);
+          final image = info?.imageAssets.first ?? 'assets/plant_icon.jpg';
+          final confidence = (scan.confidence * 100).clamp(0, 100).toStringAsFixed(0);
+          final timestamp = _formatTime(scan.timestamp);
+          final isFavorite = favorites.contains(scan.label);
           return Container(
-            width: 140,
+            width: 165,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
@@ -133,21 +225,45 @@ class _HorizontalCards extends StatelessWidget {
               ],
             ),
             child: Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    height: 68,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3E8FB),
+                  const SizedBox(height: 4),
+                  Expanded(
+                    child: ClipRRect(
                       borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        width: double.infinity,
+                        color: const Color(0xFFF3E8FB),
+                        child: Image.asset(
+                          image,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const Icon(Icons.local_florist, color: Color(0xFFC57AE6)),
+                        ),
+                      ),
                     ),
-                    child: const Center(child: Icon(Icons.local_florist, color: Color(0xFFC57AE6))),
                   ),
-                  const SizedBox(height: 12),
-                  Text(items[index], style: Theme.of(context).textTheme.titleLarge),
-                  Text('Potrivire 95%', style: Theme.of(context).textTheme.bodyMedium),
+                  const SizedBox(height: 8),
+                  Text(
+                    info?.nameRo ?? scan.label,
+                    style: Theme.of(context).textTheme.titleMedium,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    info?.latin ?? '',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    timestamp,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF666666)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
@@ -156,44 +272,60 @@ class _HorizontalCards extends StatelessWidget {
       ),
     );
   }
+
+  String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    final isToday = now.year == time.year && now.month == time.month && now.day == time.day;
+    final h = time.hour.toString().padLeft(2, '0');
+    final m = time.minute.toString().padLeft(2, '0');
+    if (isToday) return 'Azi • $h:$m';
+    return '${time.day.toString().padLeft(2, '0')}.${time.month.toString().padLeft(2, '0')} • $h:$m';
+  }
 }
 
 class _ReminderList extends StatelessWidget {
+  final List<Map<String, String>> items;
+  const _ReminderList({required this.items});
+
   @override
   Widget build(BuildContext context) {
-    final items = [
-      {'plant': 'Aloe Vera', 'task': 'Udare', 'time': '09:00'},
-      {'plant': 'Orhidee', 'task': 'Pulverizare', 'time': '14:00'},
-    ];
     return Column(
       children: items
           .map(
-            (item) => Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x11000000),
-                    blurRadius: 16,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.water_drop, color: Color(0xFFC57AE6)),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text('${item['plant']} • ${item['task']}',
-                        style: Theme.of(context).textTheme.bodyLarge),
-                  ),
-                  Text(item['time']!, style: Theme.of(context).textTheme.bodyMedium),
-                ],
-              ),
-            ),
+            (item) {
+              final info = getPlantInfo(item['plant'] ?? '');
+              final image = info?.imageAssets.first ?? 'assets/plant_icon.jpg';
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x11000000),
+                      blurRadius: 16,
+                      offset: Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    _PlantThumb(image: image),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '${info?.nameRo ?? item['plant']} • ${item['task']}',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(item['time'] ?? '', style: Theme.of(context).textTheme.bodyMedium),
+                  ],
+                ),
+              );
+            },
           )
           .toList(),
     );
@@ -201,20 +333,25 @@ class _ReminderList extends StatelessWidget {
 }
 
 class _FavoritesGrid extends StatelessWidget {
+  final List<String> favorites;
+
+  const _FavoritesGrid({required this.favorites});
+
   @override
   Widget build(BuildContext context) {
-    final plants = ['Mac', 'Bujor', 'Ienupar', 'Lavanda'];
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: plants.length,
+      itemCount: favorites.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.9,
+        childAspectRatio: 0.75,
       ),
       itemBuilder: (context, index) {
+        final info = getPlantInfo(favorites[index]);
+        final image = info?.imageAssets.first ?? 'assets/plant_icon.jpg';
         return Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -230,19 +367,37 @@ class _FavoritesGrid extends StatelessWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: SizedBox(
+                  height: 130,
+                  width: double.infinity,
+                  child: Container(
                     color: const Color(0xFFF3E8FB),
-                    borderRadius: BorderRadius.circular(14),
+                    child: Image.asset(
+                      image,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          const Icon(Icons.local_florist, color: Color(0xFFC57AE6)),
+                    ),
                   ),
-                  child: const Center(child: Icon(Icons.local_florist, color: Color(0xFFC57AE6))),
                 ),
               ),
               const SizedBox(height: 8),
-              Text(plants[index], style: Theme.of(context).textTheme.titleLarge),
-              Text('Salvia officinalis', style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                info?.nameRo ?? favorites[index],
+                style: Theme.of(context).textTheme.titleMedium,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                info?.latin ?? '',
+                style: Theme.of(context).textTheme.bodySmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
               const Align(
                 alignment: Alignment.centerRight,
                 child: Icon(Icons.favorite, color: Color(0xFFE17BCB), size: 18),
@@ -255,50 +410,24 @@ class _FavoritesGrid extends StatelessWidget {
   }
 }
 
-class _QuizCard extends StatelessWidget {
-  final VoidCallback onTap;
-  const _QuizCard({required this.onTap});
+class _PlantThumb extends StatelessWidget {
+  final String image;
+  const _PlantThumb({required this.image});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFF2C94C), Color(0xFFE9A95E)],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 48,
+        height: 48,
+        color: const Color(0xFFF3E8FB),
+        child: Image.asset(
+          image,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Icon(Icons.local_florist, color: Color(0xFFC57AE6)),
         ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Testeaza-ti cunostintele',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(color: const Color(0xFF3A2F1E))),
-          const SizedBox(height: 8),
-          Text('Quiz zilnic disponibil',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF3A2F1E))),
-          const SizedBox(height: 12),
-          Text('Poti identifica aceasta floare moldoveneasca?',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF3A2F1E))),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              ElevatedButton(
-                onPressed: onTap,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3A2F1E),
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Joaca quizul'),
-              ),
-              const Spacer(),
-              const Text('?? serie de 5 zile'),
-            ],
-          ),
-        ],
       ),
     );
   }
 }
-
-

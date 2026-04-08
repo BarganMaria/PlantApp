@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'identification.dart';
+import '../data/plant_store.dart';
 import '../services/plant_classifier.dart';
 import '../widgets/flower_background.dart';
 
@@ -27,6 +28,12 @@ class _ScanLoadingPageState extends State<ScanLoadingPage> {
     try {
       final predictions = await PlantClassifier.instance.classifyTopK(widget.imagePath, k: 3);
       final prediction = predictions.isNotEmpty ? predictions.first : null;
+      if (prediction != null) {
+        await PlantStore.instance.addScan(
+          prediction.label,
+          confidence: prediction.confidence,
+        );
+      }
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(

@@ -50,6 +50,7 @@ class _WeatherWidgetState extends State<WeatherWidget>
   }
 
   Future<void> _fetchWeather() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -58,6 +59,7 @@ class _WeatherWidgetState extends State<WeatherWidget>
       final url =
           'https://api.openweathermap.org/data/2.5/weather?q=${widget.city}&appid=${widget.apiKey}&units=metric';
       final res = await http.get(Uri.parse(url));
+      if (!mounted) return;
       if (res.statusCode == 200) {
         setState(() {
           _weather = json.decode(res.body);
@@ -70,10 +72,12 @@ class _WeatherWidgetState extends State<WeatherWidget>
         });
       }
     } catch (e) {
-      setState(() {
-        _error = 'Fara conexiune';
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = 'Fara conexiune';
+          _loading = false;
+        });
+      }
     }
   }
 

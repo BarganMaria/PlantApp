@@ -22,21 +22,21 @@ class _TutorialFlowState extends State<TutorialFlow> {
       description:
           'Foloseste lumina naturala, asigura-te ca frunzele si culorile plantei se vad clar',
       imageAsset: 'assets/tutorial_image_1.png',
-      buttonLabel: 'Urmator',
+      buttonLabel: 'Next',
     ),
     _SlideData(
       title: 'CAPTUREAZA\nTRASATURILE CHEIE',
       description:
           'Fotografiaza clar frunzele, florile, tulpina sau alte elemente distinctive care pot ajuta la identificare precisa',
       imageAsset: 'assets/tutorial_image_2.png',
-      buttonLabel: 'Urmator',
+      buttonLabel: 'Next',
     ),
     _SlideData(
       title: 'AFLA MAI MULTE DESPRE\nPLANTE!',
       description:
           'Descopera catalogul de flora a Moldovei si speciile rare care merita protejate!',
       imageAsset: 'assets/tutorial_image_3.png',
-      buttonLabel: 'Porneste',
+      buttonLabel: 'Start',
     ),
   ];
 
@@ -98,7 +98,7 @@ class _TutorialFlowState extends State<TutorialFlow> {
                     TextButton(
                       onPressed: _finish,
                       child: const Text(
-                        'Sari',
+                        'Skip',
                         style: TextStyle(color: _textMuted, fontSize: 26),
                       ),
                     )
@@ -152,18 +152,21 @@ class _SlideView extends StatelessWidget {
       child: Column(
         children: [
           Expanded(
-            child: Image.asset(
-              data.imageAsset,
-              fit: BoxFit.contain,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Image.asset(
+                data.imageAsset,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 10),
           Text(
             data.title,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: isLast ? const Color(0xFFB53AE6) : const Color(0xFF191919),
-              fontSize: isLast ? 48 : 38,
+              fontSize: isLast ? 42 : 34,
               height: 1.05,
               fontWeight: FontWeight.w900,
             ),
@@ -174,7 +177,7 @@ class _SlideView extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Color(0xFF666666),
-              fontSize: 20,
+              fontSize: 18,
               height: 1.3,
             ),
           ),

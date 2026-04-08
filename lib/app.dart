@@ -12,7 +12,7 @@ class PlantApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Identificare plante',
+      title: 'Plant Identificator',
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(

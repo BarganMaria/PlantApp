@@ -19,8 +19,6 @@ class _HomeShellState extends State<HomeShell> {
 
   final _pages = [
     const HomeScreen(),
-    const MyPlantsPage(),
-    const RedBookPage(),
     const SearchPage(),
   ];
 
@@ -28,13 +26,22 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_index],
-      floatingActionButton: FloatingActionButton(
-        shape: const CircleBorder(),
-        onPressed: _showScanOptions,
-        child: ImageIcon(
-          const AssetImage('assets/camera_icon.png'),
-          color: Colors.white,
-          size: 30,
+      floatingActionButton: Transform.translate(
+        offset: const Offset(0, 8),
+        child: SizedBox(
+          width: 77,
+          height: 77,
+          child: FloatingActionButton(
+            shape: const CircleBorder(),
+            onPressed: _showScanOptions,
+            child: Center(
+              child: ImageIcon(
+                const AssetImage('assets/camera_icon.png'),
+                color: Colors.white,
+                size: 40,
+              ),
+            ),
+          ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -45,14 +52,6 @@ class _HomeShellState extends State<HomeShell> {
           NavigationDestination(
             icon: ImageIcon(AssetImage('assets/home_icon.png')),
             label: 'Acasa',
-          ),
-          NavigationDestination(
-            icon: ImageIcon(AssetImage('assets/plant_icon.png')),
-            label: 'Plantele mele',
-          ),
-          NavigationDestination(
-            icon: ImageIcon(AssetImage('assets/book_icon.png')),
-            label: 'Cartea Rosie',
           ),
           NavigationDestination(
             icon: ImageIcon(AssetImage('assets/world_icon.png')),

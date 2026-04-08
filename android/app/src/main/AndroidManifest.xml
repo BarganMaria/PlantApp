@@ -8,9 +8,9 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
 
     <application
-        android:label="plant_identification_app"
+        android:label="Plant Identificator"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/logo"
         android:requestLegacyExternalStorage="true">
 
         <activity

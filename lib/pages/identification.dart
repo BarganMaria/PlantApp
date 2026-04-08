@@ -1,6 +1,7 @@
 ﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import '../data/plant_info.dart';
+import '../data/plant_store.dart';
 import '../services/plant_classifier.dart';
 import '../widgets/flower_background.dart';
 
@@ -20,11 +21,12 @@ class IdentificationResultsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top + kToolbarHeight + 12;
     final primary = prediction ?? (predictions.isNotEmpty ? predictions.first : null);
-    final confidence = primary?.confidence ?? 0.0;
-    final matchPercent = (confidence * 100).clamp(0, 100).toStringAsFixed(1);
     final status = primary?.status ?? 'LC';
     final statusLabel = getStatusLabelRo(status);
     final statusColor = getStatusColor(status);
+    final description = primary?.info?.descriptionRo ?? 'Descriere indisponibila pentru aceasta specie.';
+    final store = PlantStore.instance;
+    final isFavorite = primary != null && store.isFavorite(primary.label);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -34,6 +36,13 @@ class IdentificationResultsPage extends StatelessWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
+        actions: [
+          IconButton(
+            tooltip: 'Detalii identificare',
+            onPressed: () => _showIdentificationDetails(context),
+            icon: const Icon(Icons.info_outline),
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -59,18 +68,6 @@ class IdentificationResultsPage extends StatelessWidget {
                         ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFC57AE6),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text('Potrivire $matchPercent%', style: const TextStyle(color: Colors.white)),
-                ),
-              ),
               const SizedBox(height: 12),
               Text(
                 primary?.displayName ?? 'Specie necunoscuta',
@@ -83,23 +80,11 @@ class IdentificationResultsPage extends StatelessWidget {
               const SizedBox(height: 6),
               Text('Moldova Plants Model', style: Theme.of(context).textTheme.bodyMedium),
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 12,
-                runSpacing: 8,
-                children: [
-                  const _StatChip(label: 'Nativa'),
-                  _StatChip(label: 'Cartea Rosie: $statusLabel', color: statusColor),
-                  const _StatChip(label: 'Ingrijire: Usor'),
-                ],
-              ),
-              if (predictions.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text('Top 3 predictii', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 10),
-                ...predictions.take(3).map((item) => _PredictionRow(item: item)),
-              ],
-              const SizedBox(height: 20),
-              _TabCard(),
+              _StatChip(label: 'Cartea Rosie: $statusLabel', color: statusColor),
+              const SizedBox(height: 14),
+              Text('Descriere', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 8),
+              Text(description, style: Theme.of(context).textTheme.bodyLarge),
               const SizedBox(height: 20),
               Row(
                 children: [
@@ -112,15 +97,60 @@ class IdentificationResultsPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  IconButton(onPressed: () {}, icon: const Icon(Icons.favorite_border)),
+                  IconButton(
+                    onPressed: primary == null ? null : () => store.toggleFavorite(primary.label),
+                    icon: Icon(
+                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: isFavorite ? Colors.pink.shade400 : const Color(0xFFC57AE6),
+                    ),
+                    tooltip: isFavorite ? 'Scoate din favorite' : 'Adauga la favorite',
+                  ),
                   IconButton(onPressed: () {}, icon: const Icon(Icons.share)),
-                  IconButton(onPressed: () {}, icon: const Icon(Icons.flag_outlined)),
                 ],
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  void _showIdentificationDetails(BuildContext context) {
+    final primary = prediction ?? (predictions.isNotEmpty ? predictions.first : null);
+    final primaryConfidence = primary?.confidence ?? 0.0;
+    final matchPercent = (primaryConfidence * 100).clamp(0, 100).toStringAsFixed(1);
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Detalii identificare', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(height: 8),
+                Text('Potrivire: $matchPercent%', style: Theme.of(context).textTheme.bodyLarge),
+                const SizedBox(height: 14),
+                if (predictions.isNotEmpty) ...[
+                  Text('Top predictii', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: 10),
+                  ...predictions.take(3).map((item) => _PredictionRow(item: item)),
+                ] else ...[
+                  Text('Nu exista predictii disponibile.', style: Theme.of(context).textTheme.bodyMedium),
+                ],
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -141,78 +171,6 @@ class _StatChip extends StatelessWidget {
         border: Border.all(color: chipColor),
       ),
       child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
-    );
-  }
-}
-
-class _TabCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x11000000),
-              blurRadius: 16,
-              offset: Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            const TabBar(
-              tabs: [
-                Tab(text: 'Prezentare'),
-                Tab(text: 'Ghid ingrijire'),
-                Tab(text: 'Mai multe'),
-              ],
-            ),
-            SizedBox(
-              height: 220,
-              child: TabBarView(
-                children: [
-                  _TabContent(lines: ['Paragraf descriere', 'Caracteristici cheie', 'Comparatie cu specii similare']),
-                  _TabContent(lines: ['Cerinte de lumina', 'Nevoi de apa', 'Tip de sol', 'Interval de temperatura']),
-                  _TabContent(lines: ['Habitat si distributie', 'Sezon de inflorire', 'Utilizari', 'Statut de conservare']),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TabContent extends StatelessWidget {
-  final List<String> lines;
-  const _TabContent({required this.lines});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: lines
-            .map(
-              (line) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    const Icon(Icons.eco, size: 16, color: Color(0xFFC57AE6)),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(line, style: Theme.of(context).textTheme.bodyMedium)),
-                  ],
-                ),
-              ),
-            )
-            .toList(),
-      ),
     );
   }
 }
