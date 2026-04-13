@@ -6,7 +6,6 @@ import '../data/plant_store.dart';
 import '../widgets/plant_picker_sheet.dart';
 import '../widgets/weather_widget.dart';
 import 'favorites.dart';
-import 'reminders.dart';
 import 'scan_history.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,11 +17,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final PlantStore _store = PlantStore.instance;
-
-  final List<Map<String, String>> _tasks = [
-    {'plant': 'narcissus_pseudonarcissus', 'task': 'Udare usoara', 'time': '09:00'},
-    {'plant': 'tulipa_gesneriana', 'task': 'Verifica solul', 'time': '18:00'},
-  ];
 
   void _open(BuildContext context, Widget page) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
@@ -77,14 +71,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 favorites: favorites.toSet(),
                 onFavorite: _store.addFavorite,
               ),
-              const SizedBox(height: 22),
-              _SectionHeader(
-                title: 'Sarcini de ingrijire azi',
-                action: '+Adauga memento',
-                onTap: () => _open(context, const RemindersPage()),
-              ),
-              const SizedBox(height: 12),
-              _ReminderList(items: _tasks),
               const SizedBox(height: 22),
               _SectionHeader(title: 'Plantele tale preferate', action: 'Adauga favorita', onTap: _showAddFavorite),
               const SizedBox(height: 12),
@@ -280,55 +266,6 @@ class _RecentScans extends StatelessWidget {
     final m = time.minute.toString().padLeft(2, '0');
     if (isToday) return 'Azi • $h:$m';
     return '${time.day.toString().padLeft(2, '0')}.${time.month.toString().padLeft(2, '0')} • $h:$m';
-  }
-}
-
-class _ReminderList extends StatelessWidget {
-  final List<Map<String, String>> items;
-  const _ReminderList({required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: items
-          .map(
-            (item) {
-              final info = getPlantInfo(item['plant'] ?? '');
-              final image = info?.imageAssets.first ?? 'assets/plant_icon.jpg';
-              return Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x11000000),
-                      blurRadius: 16,
-                      offset: Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    _PlantThumb(image: image),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        '${info?.nameRo ?? item['plant']} • ${item['task']}',
-                        style: Theme.of(context).textTheme.bodyLarge,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Text(item['time'] ?? '', style: Theme.of(context).textTheme.bodyMedium),
-                  ],
-                ),
-              );
-            },
-          )
-          .toList(),
-    );
   }
 }
 

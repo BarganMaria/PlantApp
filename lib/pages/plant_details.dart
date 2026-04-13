@@ -45,7 +45,6 @@ class PlantDetailsPage extends StatelessWidget {
                     label: 'Cartea Rosie: $statusLabel',
                     borderColor: statusColor,
                   ),
-                  const _Chip(label: 'Catalog Moldova'),
                 ],
               ),
               const SizedBox(height: 16),

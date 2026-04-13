@@ -1,5 +1,7 @@
+Hyacinth_flower
 aconitum_lasiostomum
 anemone_sylvestris
+buttercup_flower
 campanula_sibirica
 centaurea_cyanus
 chrysanthemum_x_morifolium
@@ -11,12 +13,9 @@ galanthus_nivalis
 glechoma_hederacea
 helianthus_annuus
 hyssopus_officinalis
-iris_pumila
-iris_sibirica
-iris_variegata
+iris
 lamium_album
 lavandula_angustifolia
-leucanthemum_vulgare
 lilium_martagon
 matricaria_chamomilla
 mentha_piperita
@@ -29,10 +28,13 @@ papaver_rhoeas
 petunia_x_hybrida
 plantago_lanceolata
 platanthera_bifolia
+ranunculus_acris
 rosa_x_hybrida
 scilla_siberica
 silybum_marianum
-tulipa_biebersteiniana
+taraxacum_officinale
 tulipa_gesneriana
 typha_latifolia
 urtica_dioica
+valeriana_officinalis
+viola_odorata

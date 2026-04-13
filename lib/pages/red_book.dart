@@ -63,7 +63,6 @@ class _RedBookPageState extends State<RedBookPage> {
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 10),
-                      const _StatusLine(label: 'EX (Disparut)', description: 'nu mai exista indivizi cunoscuti'),
                       const _StatusLine(label: 'CR (Critic in pericol)', description: 'risc extrem de extinctie'),
                       const _StatusLine(label: 'EN (In pericol)', description: 'risc foarte ridicat de extinctie'),
                       const _StatusLine(label: 'VU (Vulnerabil)', description: 'risc ridicat de extinctie'),

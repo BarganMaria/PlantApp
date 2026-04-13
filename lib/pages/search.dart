@@ -15,8 +15,8 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _controller = TextEditingController();
+  final Set<String> _selectedStatuses = <String>{};
   String _query = '';
-  final Set<String> _statusFilter = {};
 
   @override
   void dispose() {
@@ -28,6 +28,8 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top + 12;
     final store = PlantStore.instance;
+    final statusFilters =
+        plantStatusInfo.values.where((status) => status.code != 'EX').toList(growable: false);
 
     final allPlants = plantInfoByLabel.values.toList()
       ..sort((a, b) => a.nameRo.compareTo(b.nameRo));
@@ -40,68 +42,104 @@ class _SearchPageState extends State<SearchPage> {
             return haystack.contains(query);
           }).toList();
 
-    final filtered = _statusFilter.isEmpty
+    final filtered = _selectedStatuses.isEmpty
         ? results
-        : results.where((plant) => _statusFilter.contains(plant.status)).toList();
+        : results.where((plant) => _selectedStatuses.contains(plant.status)).toList();
 
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: null,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: FlowerBackground()),
-          ListView(
-            padding: EdgeInsets.fromLTRB(20, topInset, 20, 20),
+    return AnimatedBuilder(
+      animation: store,
+      builder: (context, _) {
+        final favorites = store.favorites.toSet();
+        return Scaffold(
+          extendBodyBehindAppBar: true,
+          appBar: null,
+          body: Stack(
             children: [
-              TextField(
-                controller: _controller,
-                onChanged: (value) => setState(() => _query = value),
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.search),
-                  hintText: 'Cauta plante dupa nume sau nume stiintific...',
-                ),
-              ),
-              const SizedBox(height: 12),
-              _StatusFilter(
-                selected: _statusFilter,
-                onToggle: (code) {
-                  setState(() {
-                    if (_statusFilter.contains(code)) {
-                      _statusFilter.remove(code);
-                    } else {
-                      _statusFilter.add(code);
-                    }
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              Row(
+              const Positioned.fill(child: FlowerBackground()),
+              ListView(
+                padding: EdgeInsets.fromLTRB(20, topInset, 20, 20),
                 children: [
-                  Text('Catalog plante', style: Theme.of(context).textTheme.titleLarge),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: 'Cartea Rosie a Moldovei',
-                    icon: const Icon(Icons.info_outline),
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const RedBookPage()),
-                      );
-                    },
+                  TextField(
+                    controller: _controller,
+                    onChanged: (value) => setState(() => _query = value),
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      hintText: 'Cauta plante dupa nume sau nume stiintific...',
+                    ),
                   ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Text('Catalog plante', style: Theme.of(context).textTheme.titleLarge),
+                      const Spacer(),
+                      IconButton(
+                        tooltip: 'Cartea Rosie a Moldovei',
+                        icon: const Icon(Icons.info_outline),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const RedBookPage()),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Filtreaza dupa statutul din Cartea Rosie',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 44,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: statusFilters.length + 1,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          return _CatalogFilterChip(
+                            label: 'Toate',
+                            color: const Color(0xFFC57AE6),
+                            selected: _selectedStatuses.isEmpty,
+                            onSelected: (_) {
+                              if (_selectedStatuses.isEmpty) return;
+                              setState(_selectedStatuses.clear);
+                            },
+                          );
+                        }
+
+                        final status = statusFilters[index - 1];
+                        return _CatalogFilterChip(
+                          label: status.labelRo,
+                          color: status.color,
+                          selected: _selectedStatuses.contains(status.code),
+                          onSelected: (selected) {
+                            setState(() {
+                              if (selected) {
+                                _selectedStatuses.add(status.code);
+                              } else {
+                                _selectedStatuses.remove(status.code);
+                              }
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (filtered.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      child: Text('Niciun rezultat.', style: Theme.of(context).textTheme.bodyLarge),
+                    )
+                  else
+                    ...filtered.map((plant) => _PlantCard(plant: plant, store: store, favorites: favorites)),
                 ],
               ),
-              const SizedBox(height: 10),
-              if (filtered.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  child: Text('Niciun rezultat.', style: Theme.of(context).textTheme.bodyLarge),
-                )
-              else
-                ...filtered.map((plant) => _PlantCard(plant: plant, store: store)),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -109,15 +147,16 @@ class _SearchPageState extends State<SearchPage> {
 class _PlantCard extends StatelessWidget {
   final PlantInfo plant;
   final PlantStore store;
+  final Set<String> favorites;
 
-  const _PlantCard({required this.plant, required this.store});
+  const _PlantCard({required this.plant, required this.store, required this.favorites});
 
   @override
   Widget build(BuildContext context) {
     final statusLabel = getStatusLabelRo(plant.status);
     final statusColor = getStatusColor(plant.status);
     final image = plant.imageAssets.isEmpty ? 'assets/plant_icon.jpg' : plant.imageAssets.first;
-    final isFavorite = store.isFavorite(plant.label);
+    final isFavorite = favorites.contains(plant.label);
 
     return InkWell(
       borderRadius: BorderRadius.circular(16),
@@ -207,35 +246,6 @@ class _PlantCard extends StatelessWidget {
   }
 }
 
-class _StatusFilter extends StatelessWidget {
-  final Set<String> selected;
-  final ValueChanged<String> onToggle;
-
-  const _StatusFilter({required this.selected, required this.onToggle});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 46,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: plantStatusInfo.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final status = plantStatusInfo.values.elementAt(index);
-          final isOn = selected.contains(status.code);
-          return ChoiceChip(
-            label: Text(status.labelRo),
-            selected: isOn,
-            onSelected: (_) => onToggle(status.code),
-            selectedColor: status.color.withOpacity(0.2),
-          );
-        },
-      ),
-    );
-  }
-}
-
 class _StatusTag extends StatelessWidget {
   final String label;
   final Color color;
@@ -246,11 +256,47 @@ class _StatusTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.9)),
+        border: Border.all(color: color.withValues(alpha: 0.9)),
       ),
       child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+    );
+  }
+}
+
+class _CatalogFilterChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool selected;
+  final ValueChanged<bool> onSelected;
+
+  const _CatalogFilterChip({
+    required this.label,
+    required this.color,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FilterChip(
+      label: Text(label),
+      selected: selected,
+      showCheckmark: false,
+      onSelected: onSelected,
+      backgroundColor: Colors.white,
+      selectedColor: color.withValues(alpha: 0.14),
+      side: BorderSide(
+        color: selected ? color : color.withValues(alpha: 0.45),
+      ),
+      labelStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        color: selected ? color : Colors.black87,
+        fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
     );
   }
 }

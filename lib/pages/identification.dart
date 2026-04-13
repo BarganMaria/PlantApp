@@ -1,11 +1,11 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../data/plant_info.dart';
 import '../data/plant_store.dart';
 import '../services/plant_classifier.dart';
 import '../widgets/flower_background.dart';
 
-class IdentificationResultsPage extends StatelessWidget {
+class IdentificationResultsPage extends StatefulWidget {
   final String? imagePath;
   final PlantPrediction? prediction;
   final List<PlantPrediction> predictions;
@@ -18,15 +18,21 @@ class IdentificationResultsPage extends StatelessWidget {
   });
 
   @override
+  State<IdentificationResultsPage> createState() => _IdentificationResultsPageState();
+}
+
+class _IdentificationResultsPageState extends State<IdentificationResultsPage> {
+  final PlantStore _store = PlantStore.instance;
+
+  @override
   Widget build(BuildContext context) {
     final topInset = MediaQuery.of(context).padding.top + kToolbarHeight + 12;
-    final primary = prediction ?? (predictions.isNotEmpty ? predictions.first : null);
+    final primary = widget.prediction ?? (widget.predictions.isNotEmpty ? widget.predictions.first : null);
     final status = primary?.status ?? 'LC';
     final statusLabel = getStatusLabelRo(status);
     final statusColor = getStatusColor(status);
     final description = primary?.info?.descriptionRo ?? 'Descriere indisponibila pentru aceasta specie.';
-    final store = PlantStore.instance;
-    final isFavorite = primary != null && store.isFavorite(primary.label);
+    final isFavorite = primary != null && _store.isFavorite(primary.label);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -58,10 +64,10 @@ class IdentificationResultsPage extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  child: imagePath == null
+                  child: widget.imagePath == null
                       ? const Center(child: Icon(Icons.local_florist, size: 80, color: Color(0xFFC57AE6)))
                       : Image.file(
-                          File(imagePath!),
+                          File(widget.imagePath!),
                           width: double.infinity,
                           height: double.infinity,
                           fit: BoxFit.cover,
@@ -98,7 +104,12 @@ class IdentificationResultsPage extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   IconButton(
-                    onPressed: primary == null ? null : () => store.toggleFavorite(primary.label),
+                    onPressed: primary == null
+                        ? null
+                        : () async {
+                            await _store.toggleFavorite(primary.label);
+                            setState(() {});
+                          },
                     icon: Icon(
                       isFavorite ? Icons.favorite : Icons.favorite_border,
                       color: isFavorite ? Colors.pink.shade400 : const Color(0xFFC57AE6),
@@ -116,7 +127,7 @@ class IdentificationResultsPage extends StatelessWidget {
   }
 
   void _showIdentificationDetails(BuildContext context) {
-    final primary = prediction ?? (predictions.isNotEmpty ? predictions.first : null);
+    final primary = widget.prediction ?? (widget.predictions.isNotEmpty ? widget.predictions.first : null);
     final primaryConfidence = primary?.confidence ?? 0.0;
     final matchPercent = (primaryConfidence * 100).clamp(0, 100).toStringAsFixed(1);
 
@@ -138,10 +149,10 @@ class IdentificationResultsPage extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text('Potrivire: $matchPercent%', style: Theme.of(context).textTheme.bodyLarge),
                 const SizedBox(height: 14),
-                if (predictions.isNotEmpty) ...[
+                if (widget.predictions.isNotEmpty) ...[
                   Text('Top predictii', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 10),
-                  ...predictions.take(3).map((item) => _PredictionRow(item: item)),
+                  ...widget.predictions.take(3).map((item) => _PredictionRow(item: item)),
                 ] else ...[
                   Text('Nu exista predictii disponibile.', style: Theme.of(context).textTheme.bodyMedium),
                 ],
@@ -210,7 +221,3 @@ class _PredictionRow extends StatelessWidget {
     );
   }
 }
-
-
-
-
