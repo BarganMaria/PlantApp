@@ -9,17 +9,6 @@ Discover the plants around you and learn more about Moldova's biodiversity.
 <img width="617" height="686" alt="image" src="https://github.com/user-attachments/assets/de843d75-d361-4e19-9df8-a17bc8d02397" />
 
 
-
-<!-- Add your app screenshots here -->
-
-| Home | Plant Identification | Plant Details |
-|:---:|:---:|:---:|
-| ![Home](screenshots/home.png) | ![Identification](screenshots/identification.png) | ![Plant Details](screenshots/plant_details.png) |
-
-| Plant Catalog | Red Book | Identification History |
-|:---:|:---:|:---:|
-| ![Catalog](screenshots/catalog.png) | ![Red Book](screenshots/red_book.png) | ![History](screenshots/history.png) |
-
 ## ✨ Features
 
 - **Plant Identification** — Identify plant species using photos and an integrated machine learning model.
